@@ -237,11 +237,23 @@ def execute_webhook(webhook_pk, alert_group_id, user_id, escalation_policy_id, t
         return
 
     try:
-        personal_log_records = UserNotificationPolicyLogRecord.objects.filter(
+        personal_log_records = (UserNotificationPolicyLogRecord.objects.filter(
             alert_group_id=alert_group_id,
             author__isnull=False,
             type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_SUCCESS,
-        ).select_related("author")
+        ) | UserNotificationPolicyLogRecord.objects.filter(
+            alert_group_id=alert_group_id,
+            author__isnull=False,
+            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_TRIGGERED,
+        )| UserNotificationPolicyLogRecord.objects.filter(
+            alert_group_id=alert_group_id,
+            author__isnull=False,
+            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_FINISHED,
+        )| UserNotificationPolicyLogRecord.objects.filter(
+            alert_group_id=alert_group_id,
+            author__isnull=False,
+            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_FAILED,
+        )).select_related("author")
         alert_group = (
             AlertGroup.objects.prefetch_related(
                 Prefetch("personal_log_records", queryset=personal_log_records, to_attr="sent_notifications")
