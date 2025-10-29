@@ -71,7 +71,7 @@ def notify_user_async(user_pk, alert_group_pk, notification_policy_pk):
     if not live_settings.EMAIL_HOST:
         _create_user_notification_policy_log_record(
             author=user,
-            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_SUCCESS,
+            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_FAILED,
             notification_policy=notification_policy,
             alert_group=alert_group,
             reason="Error while sending email",
@@ -85,7 +85,7 @@ def notify_user_async(user_pk, alert_group_pk, notification_policy_pk):
     if emails_left <= 0:
         _create_user_notification_policy_log_record(
             author=user,
-            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_SUCCESS,
+            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_FAILED,
             notification_policy=notification_policy,
             alert_group=alert_group,
             reason="Error while sending email",
@@ -129,15 +129,26 @@ def notify_user_async(user_pk, alert_group_pk, notification_policy_pk):
     except (gaierror, BadHeaderError) as e:
         # gaierror is raised when EMAIL_HOST is invalid
         # BadHeaderError is raised when there's newlines in the subject
-        _create_user_notification_policy_log_record(
-            author=user,
-            type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_SUCCESS,
-            notification_policy=notification_policy,
-            alert_group=alert_group,
-            reason="Error while sending email",
-            notification_step=notification_policy.step,
-            notification_channel=notification_policy.notify_by,
-        )
+        if using_fallback_default_notification_policy_step:
+            _create_user_notification_policy_log_record(
+                author=user,
+                type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_SUCCESS,
+                notification_policy=notification_policy,
+                alert_group=alert_group,
+                reason="Error while sending email",
+                notification_step=notification_policy.step,
+                notification_channel=notification_policy.notify_by,
+            )
+        else:
+            _create_user_notification_policy_log_record(
+                author=user,
+                type=UserNotificationPolicyLogRecord.TYPE_PERSONAL_NOTIFICATION_FAILED,
+                notification_policy=notification_policy,
+                alert_group=alert_group,
+                reason="Error while sending email",
+                notification_step=notification_policy.step,
+                notification_channel=notification_policy.notify_by,
+            )
         logger.error(f"Error while sending email: {e}")
         return
 
